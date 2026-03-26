@@ -1,130 +1,114 @@
 # /make-slides — Claude Code Skill
 
-Transform lecture slides (PPTX, PDF, or topic descriptions) into **interactive, Canvas-enhanced HTML decks** with step-through animations, playgrounds, and challenge quizzes. One command, fully automated.
-
-## What it does
+Transform lecture slides (PPTX, PDF, or topic descriptions) into **interactive, Canvas-enhanced HTML decks** with step-through animations, playgrounds, and challenge quizzes.
 
 ```
 sorting.pptx  →  sorting-enhanced.html (24 interactive slides)
 ```
 
-Give it a PPTX, PDF, or topic name. It extracts content, builds a base HTML deck, then enhances every slide with:
+## Quick Start
 
-- **Canvas step-through animations** (Next / Auto / Reset)
-- **Interactive playgrounds** (user inputs values, watches operations)
-- **Code highlighting** synced to execution trace
-- **3 inline challenges** (predict, fix-the-bug, pick-the-answer)
-- **3 quiz questions** (MC, trace, fill-in-the-blank)
-- **5 themes** (Aurora Light, Midnight Dark, Sunset Warm, Ocean Cool, Neon Pop)
-
-Output is a **single self-contained HTML file** — no dependencies, no build step. Open in any browser.
-
-## Demo
-
-The skill has been used to produce 15+ enhanced decks for CS courses (data structures, algorithms, computer architecture).
-
-## Install
+### 1. Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/make-slides-skill.git
+git clone https://github.com/weihaoqu/make-slides-skill.git
 cd make-slides-skill
 bash install.sh
 ```
 
-This copies 3 files into your `~/.claude/` directory:
+### 2. Use
+
+Open [Claude Code](https://docs.anthropic.com/en/docs/claude-code) in any directory and type:
 
 ```
-~/.claude/
-├── commands/
-│   └── make-slides.md          # The /make-slides command
-└── skills/
-    ├── enhance-slides/
-    │   └── SKILL.md            # Canvas enhancement engine
-    └── slide-generator/
-        ├── SKILL.md            # Base HTML generation engine
-        └── references/
-            ├── template.md     # Slide HTML template
-            ├── batch-generation.md
-            └── feedback-form.md
+/make-slides sorting.pptx
 ```
 
-## Usage
+That's it. Claude will extract your slides, build an interactive HTML deck, and run a quality audit — all automatically.
 
-Open Claude Code in any directory and run:
+### 3. Open the output
 
 ```bash
-# From a PPTX file (most common)
-/make-slides sorting.pptx
+open sorting-enhanced.html
+```
 
+Single self-contained HTML file. No dependencies. Works in any browser.
+
+## More examples
+
+```bash
 # From a PDF
 /make-slides chapter5.pdf
 
-# From a topic description
+# From a topic (no source file needed)
 /make-slides "Binary Search Trees"
 
-# With theme selection
+# Pick a theme
 /make-slides sorting.pptx --theme neon
 
-# Exercise mode (scrollable quiz app instead of slides)
+# Generate a quiz/exercise app instead of slides
 /make-slides sorting.pptx --exercise
-
-# Skip the quality audit
-/make-slides sorting.pptx --no-audit
 ```
+
+## What you get
+
+Every slide is enhanced with interactive elements:
+
+- **Step-through animations** — Next / Auto / Reset buttons to walk through algorithms
+- **Interactive playgrounds** — type values and watch data structures respond
+- **Synced code highlighting** — code lines light up as execution progresses
+- **3 inline challenges** — predict output, fix the bug, pick the right answer
+- **3 quiz questions** — multiple choice, trace exercises, fill-in-the-blank
+- **5 themes** — Aurora Light, Midnight Dark, Sunset Warm, Ocean Cool, Neon Pop
 
 ## How it works
 
 ```
-Input (PPTX/PDF/topic)
+Your slides (PPTX / PDF / topic)
         ↓
 Phase A: Extract & Generate
-  Read source → build base HTML deck
-        ↓ (auto-proceed)
-Phase B: Enhance (3-part build)
-  Part 1 → review → Part 2 → review → Part 3 → review
-  Each slide gets Canvas visualizations + interactivity
+        ↓  (automatic)
+Phase B: Enhance — 3-part build with review between each part
         ↓
-Phase C: Quality Audit
-  5 parallel subagents check:
-  • Content accuracy    • Code correctness
-  • Quiz answers        • Terminology
-  • Pedagogy flow
-  + UI audit (contrast, canvas sizing, navigation, timers)
+Phase C: Quality Audit — 5 parallel AI agents check accuracy
         ↓
-Output: topic-enhanced.html (~24 slides, audited)
+Output: one interactive HTML file (~24 slides)
 ```
 
 ## Themes
 
-| Theme | Background | Best For |
-|-------|-----------|----------|
-| **Aurora Light** (default) | White → indigo → lavender | Classroom lectures |
-| **Midnight Dark** | Deep navy (#0f172a) | Lab sessions, coding demos |
+| Theme | Look | Best For |
+|-------|------|----------|
+| **Aurora Light** (default) | White → indigo gradient | Classroom lectures |
+| **Midnight Dark** | Deep navy | Lab sessions, coding demos |
 | **Sunset Warm** | Warm cream → peach | Intro courses |
-| **Ocean Cool** | Cool grey-blue → ice | Conference talks |
-| **Neon Pop** | Near-black with glow | Hackathons, engagement |
+| **Ocean Cool** | Cool grey-blue | Conference talks |
+| **Neon Pop** | Black with glow effects | Hackathons |
 
-## Architecture
+## What gets installed
 
-The skill is 3 files working together:
+The install script copies files into `~/.claude/`:
 
-- **`make-slides.md`** — The command. Orchestrates the full pipeline (extract → generate → enhance → audit). Handles theme selection, flags, and the 3-part build pattern.
-- **`enhance-slides/SKILL.md`** — The enhancement engine. Contains all Canvas patterns (trees, graphs, arrays, bar charts), JS patterns (IIFE, step-through, MutationObserver), CSS themes, challenge templates, and the quality checklist.
-- **`slide-generator/SKILL.md`** — The generation engine. Converts PPTX/PDF/topic into a base HTML deck with ASCII diagrams, callout boxes, and proper slide structure.
+```
+~/.claude/
+├── commands/
+│   └── make-slides.md            ← the /make-slides command
+└── skills/
+    ├── enhance-slides/
+    │   └── SKILL.md              ← Canvas enhancement engine
+    └── slide-generator/
+        ├── SKILL.md              ← HTML generation engine
+        └── references/
+            ├── template.md
+            ├── batch-generation.md
+            └── feedback-form.md
+```
 
-## Key design decisions
-
-- **Single HTML file** — no dependencies, no framework, no build step
-- **Canvas API over SVG** — more consistent for animations, better performance
-- **IIFE per slide** — no global variable leaks between slides
-- **MutationObserver on every interactive slide** — proper reset on forward/backward navigation
-- **Precomputed steps** — never compute algorithm steps during animation
-- **Theme-aware canvas colors** — light themes use dark text, dark themes use light text (enforced by validation rules)
+To uninstall, just delete those files.
 
 ## Requirements
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
-- That's it. No other dependencies.
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
 
 ## License
 
