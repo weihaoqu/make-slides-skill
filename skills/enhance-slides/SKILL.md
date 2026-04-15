@@ -127,6 +127,10 @@ Large decks (15+ original slides) are always split into 3 parts for incremental 
 | After a teaching section (every 2-3 slides) | **Inline challenge** (sCA, sCB, sCC) | MEDIUM |
 | Concept definition or properties | **Canvas diagram** with interactive hover/click exploration | MEDIUM |
 | Summary / cheat sheet | **Canvas table** with color-coded costs + decision flowchart | LOW |
+| Proof by contradiction | **Canvas step-through** — one step per click, claim box → assume → construct → contradict → conclude | HIGH |
+| Classification/hierarchy (e.g., Decidable vs RE) | **Three-card layout** — side-by-side colored cards + Venn diagram canvas | HIGH |
+| Encoding/construction (e.g., TM → binary) | **Multi-step canvas walkthrough** — concrete example with color-coded transformations | HIGH |
+| Transition diagram (automata) | **Canvas state diagram** + companion transition table on same or next slide | HIGH |
 | Pure definition or formula | Keep mostly static with `.key-idea` / `.warning` / `.analogy` callouts | LOW |
 
 ### Slide Merging Strategy
@@ -297,6 +301,90 @@ Object.entries(positions).forEach(([id, {x, y}]) => {
   ctx.textBaseline = 'middle';
   ctx.fillText(id, x, y);
 });
+```
+
+**Self-loop pattern for automata/state diagrams (CRITICAL):**
+
+Self-loops MUST draw as nearly-complete circles. A small `arc(x,y,r, 0.3π, 0.7π)` renders as an invisible sliver — NOT a loop.
+
+```js
+// Self-loop ABOVE a state at (sx, sy) with state radius R
+var loopR = 16;
+var loopCY = sy - R - loopR + 4; // center of loop circle, above state
+ctx.beginPath();
+// Large arc with opening at bottom (facing the state)
+ctx.arc(sx, loopCY, loopR, 0.8 * Math.PI, 0.2 * Math.PI);
+ctx.stroke();
+// Arrowhead at arc endpoint
+var endA = 0.2 * Math.PI;
+var ax = sx + loopR * Math.cos(endA), ay = loopCY + loopR * Math.sin(endA);
+var tang = endA + Math.PI / 2; // tangent at endpoint
+ctx.beginPath();
+ctx.moveTo(ax, ay);
+ctx.lineTo(ax - 7 * Math.cos(tang - 0.4), ay - 7 * Math.sin(tang - 0.4));
+ctx.lineTo(ax - 7 * Math.cos(tang + 0.4), ay - 7 * Math.sin(tang + 0.4));
+ctx.closePath(); ctx.fill();
+// Label above the loop
+ctx.fillText(label, sx, loopCY - loopR - 4);
+
+// Self-loop BELOW a state (e.g., bottom-row states)
+var loopCYbelow = sy + R + loopR - 4;
+ctx.beginPath();
+ctx.arc(sx, loopCYbelow, loopR, 1.2 * Math.PI, 1.8 * Math.PI, true);
+ctx.stroke();
+// Label below the loop
+ctx.fillText(label, sx, loopCYbelow + loopR + 12);
+```
+
+**Automata state diagram pattern (DFA/NFA/TM/PDA):**
+
+For slides involving automata, draw a full state transition diagram with:
+- State circles (radius ~22) with labels, double-circle for accept states
+- Start arrow pointing into the initial state
+- Curved arrows between states (use `quadraticCurveTo` with offset control points)
+- Self-loops using the pattern above
+- Transition labels on each arrow (color: `#fbbf24`)
+
+```js
+// State positions — precompute layout
+var states = [
+  {n:'q₀', x:240, y:40, start:true},
+  {n:'q₁', x:100, y:120},
+  {n:'q_acc', x:240, y:170, accept:true}
+];
+var R = 22;
+
+// Draw transitions first (behind states)
+// For curved edges between states:
+var dx=x2-x1, dy=y2-y1, dist=Math.sqrt(dx*dx+dy*dy);
+var nx=-dy/dist, ny=dx/dist; // normal for curve offset
+var sx=x1+dx/dist*R, sy=y1+dy/dist*R; // start (shortened to edge)
+var ex=x2-dx/dist*R, ey=y2-dy/dist*R; // end (shortened to edge)
+var mx=(sx+ex)/2+nx*curve, my=(sy+ey)/2+ny*curve; // control point
+ctx.quadraticCurveTo(mx, my, ex, ey);
+
+// Draw states on top
+states.forEach(s => {
+  ctx.arc(s.x, s.y, R, 0, Math.PI*2);
+  if (s.accept) { // double circle
+    ctx.arc(s.x, s.y, R-4, 0, Math.PI*2); // inner circle
+  }
+  if (s.start) { // entry arrow
+    ctx.moveTo(s.x-R-25, s.y); ctx.lineTo(s.x-R-2, s.y);
+  }
+});
+```
+
+**Transition table pattern:**
+
+When a slide has an automata diagram, also include a companion transition table (either on the same slide or the next). Use HTML `<table>` with highlighted rows for accept transitions:
+
+```html
+<table style="font-size:0.88em;">
+  <tr><th>State</th><th>Read</th><th>Next</th><th>Write</th><th>Move</th></tr>
+  <tr><td>q₀</td><td>a</td><td>q₁</td><td>X</td><td>R</td></tr>
+  <tr class="highlight"><td>q₀</td><td>B</td><td>q_acc</td><td>B</td><td>R</td></tr>
+</table>
 ```
 
 **Distance/state table on Canvas:**
@@ -615,20 +703,38 @@ function showSummary() {
 
 ## Important Rules
 
+### Technical Rules
 - **No external dependencies.** Everything is self-contained HTML/CSS/JS.
 - **Match the dark theme** consistently across all decks.
-- **Don't over-enhance.** Pure definitions are fine as formatted static content with `.key-idea` / `.warning` / `.analogy` callouts. Only add interactivity where it genuinely helps understanding.
 - **Canvas over SVG.** Use Canvas API for all visualizations (trees, arrays, graphs, charts). More consistent and performant for animations.
 - **IIFE everything.** Never leak variables into global scope except `window.sNAction` button handlers.
 - **MutationObserver on every interactive slide** to reinitialize when the slide becomes active (handles forward/backward navigation).
 - **Precompute steps** — never compute algorithm steps on-the-fly during animation.
 - **Timer cleanup** — always clear intervals in reset functions.
 - **Arrow keys disabled** when INPUT/SELECT/TEXTAREA is focused (prevents navigation while typing).
-- **Merge multi-step static slides** — if 2+ source slides show the same operation step by step, combine into one interactive step-through slide.
-- **Explain the "why"** — always explain reasoning behind design choices.
+
+### Workflow Rules
 - **Plan before building** — never start coding without user approval on the plan.
 - **One part at a time** — build Part 1, get approval, then Part 2, etc. Never skip ahead.
+- **Explain the "why"** — always explain reasoning behind design choices.
+
+### Pedagogical Rules (Critical — learned from CS305 TM/UTM enhancements)
+
+These rules directly improve student comprehension. Violating them produces slides that look good but don't teach well.
+
+- **Replace ASCII diagrams with Canvas visualizations.** ASCII art in `.diagram` boxes is hard to read on dark backgrounds. Use canvas with color-coded boxes, arrows, and labels instead.
+- **Every proof and complex concept needs a step-through.** Use Prev/Next buttons with numbered steps. Each step should show BOTH the visual AND a plain-English explanation of what's happening and WHY. Never dump the full proof on one slide.
+- **State the claim before the proof.** Always show "Theorem: X is undecidable" (or whatever the claim is) in a prominent bordered box BEFORE presenting proof steps. Students need to know what they're proving.
+- **Explain jargon inline.** Don't assume students know terms like "Goldbach's conjecture", "RE", or "recursive." Add brief explanations (what it is, example, why it matters) right where the term appears — use a small callout box with a different background.
+- **Add "In plain English" to technical tables.** Tables listing formal problems/definitions need a third column explaining what each entry means in everyday language. E.g., E_TM = "Does M reject everything?"
+- **Split dense slides into two.** If a slide has both definition + proof, or both concept + exercise, split into two slides. One core idea per slide. Students process one thing at a time.
+- **Don't over-enhance.** Pure definitions are fine as formatted static content with `.key-idea` / `.warning` / `.analogy` callouts. Only add interactivity where it genuinely helps understanding.
+- **Remove content that's too advanced.** If a concept requires 3+ prerequisites that haven't been covered (e.g., closure properties when students barely understand RE), cut it. Prefer clarity over completeness.
+- **Merge multi-step static slides** — if 2+ source slides show the same operation step by step, combine into one interactive step-through slide.
 - **PPTX/PDF: add depth** — raw slides are often sparse. Add explanations, analogies, warnings, and "why" context that the original slides lack. Don't just convert — *enhance*.
+- **Use three-card layouts for comparisons.** When comparing 2-3 categories (e.g., Decidable vs RE vs Not RE), use side-by-side colored cards with consistent structure: title, definition, machine type, examples. Color-code borders (green/amber/red) so the distinction is immediately visual.
+- **Canvas walkthroughs for encoding/construction proofs.** When explaining multi-step constructions (e.g., "encode a TM as a binary string"), use a 3-5 step canvas walkthrough where each step shows the concrete transformation with color-coded parts and annotations. Abstract descriptions without concrete examples don't stick.
+- **Venn/hierarchy diagrams for classification.** When showing language classes (Regular ⊂ CFL ⊂ Decidable ⊂ RE ⊂ All), use canvas nested ellipses with example dots placed in the correct regions. This single visual anchors the entire classification framework.
 
 ## Quality Checklist (before delivering each part)
 
